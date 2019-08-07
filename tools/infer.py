@@ -23,39 +23,58 @@ import scipy.io as sio
 import caffe, os, sys, cv2 as cv
 import argparse
 
-def draw_boxes(im, class_name, dets, thresh=0.5):
+def get_boxes(im, class_name, dets, thresh=0.5):
   """Draw detected bounding boxes."""
+  boxes = []
   inds = np.where(dets[:, -1] >= thresh)[0]
   if len(inds) == 0:
     return
-
-  im = im[:, :, (2, 1, 0)]
-  fig, ax = plt.subplots(figsize=(12, 12))
-  ax.imshow(im, aspect='equal')
 
   height, width = im.shape[:2]
   x_scale = width / 500
   y_scale = height / 375
 
+  im = np.ascontiguousarray(im, dtype=np.int32)
+
   for i in inds:
     bbox = dets[i, :4]
     score = dets[i, -1]
 
-    ax.add_patch(
-      plt.Rectangle((bbox[0] * x_scale, bbox[1] * y_scale),
-                    (bbox[2] - bbox[0]) * x_scale,
-                    (bbox[3] - bbox[1]) * y_scale, fill=False,
-                    edgecolor='red', linewidth=3.5)
-      )
-    ax.text((bbox[0])  * x_scale, (bbox[1] - 2)  * y_scale,
-      '{:s} {:.3f}'.format(class_name, score),
-      bbox=dict(facecolor='blue', alpha=0.5),
-      fontsize=14, color='white')
+    boxes.append({
+      'box': [
+        int(bbox[0] * x_scale),
+        int(bbox[1] * y_scale),
+        int(bbox[2] * x_scale),
+        int(bbox[3] * y_scale)
+      ],
+      'score': score,
+      'class': class_name
+    })
 
-  ax.set_title(('{} detections with '
-                'p({} | box) >= {:.1f}').format(class_name, class_name,
-                                                thresh),
-                fontsize=14)
+  return boxes
+
+def draw_boxes(im, detections):
+  fig, ax = plt.subplots(figsize=(12, 12))
+
+  ax.imshow(im, aspect='equal')
+
+  for detection in detections:
+    if detection:
+      for box in detection:
+        bbox = box['box']
+        ax.add_patch(
+          plt.Rectangle((bbox[0], bbox[1]),
+                        (bbox[2] - bbox[0]),
+                        (bbox[3] - bbox[1]), fill=False,
+                        edgecolor='red', linewidth=3.5)
+          )
+        ax.text((bbox[0]) , (bbox[1] - 2) ,
+          '{:s} {:.3f}'.format(box['class'], box['score']),
+          bbox=dict(facecolor='blue', alpha=0.5),
+          fontsize=14, color='white')
+
+    ax.set_title('Results', fontsize=14)
+
   plt.axis('off')
   plt.tight_layout()
   plt.draw()
@@ -75,6 +94,10 @@ def demo(net, image_file, labels, conf_thre, nms_thre):
   print(('Detection took {:.3f}s for '
           '{:d} object proposals').format(timer.total_time, boxes.shape[0]))
 
+  final_boxes = []
+
+  im = im[:, :, (2, 1, 0)]
+
   # Visualize detections for each class
   for cls_ind, cls in enumerate(labels[1:]):
     cls_ind += 1 # because we skipped background
@@ -84,7 +107,9 @@ def demo(net, image_file, labels, conf_thre, nms_thre):
                       cls_scores[:, np.newaxis])).astype(np.float32)
     keep = nms(dets, nms_thre)
     dets = dets[keep, :]
-    draw_boxes(im, cls, dets, thresh=conf_thre)
+    final_boxes.append(get_boxes(im, cls, dets, thresh=conf_thre))
+
+  draw_boxes(im, final_boxes)
 
 def parse_args():
   """Parse input arguments."""
