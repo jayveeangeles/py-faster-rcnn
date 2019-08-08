@@ -16,5 +16,13 @@
 5) You can change the NMS and confidence thresholds by setting the environment variables `NMS_THRE` and `CONF_THRE` respectively. Override these values when you do step 4.  
 6) For more advanced users, the python script to do the inferencing actually has a few arguments that can be changed. Override the default inference process by passing an executable script during the docker run phase.   
 
+## Notes for Windows 10 Users
+1) Make sure that your system has virtualization enabled. After installing Docker, reboot your system and when you run Docker, say yes to the option that tells you to give it permission to run virtualization.  
+2) Try to give as much memory as possible for the Docker VM in the settings. 4GB should be good enough to run this.  
+3) To enable the display, follow this [link](https://dev.to/darksmile92/run-gui-app-in-linux-docker-container-on-windows-host-4kde). The link details how you can output the results in the host display. You will be needing VcXsrv. Install it as per normal using this [link](https://sourceforge.net/projects/vcxsrv/); you won't have to install Chocolatey if you want.  
+4) Always take note of your IP address if you're using a non-Linux host. For Windows 10, take note of your DockerNAT IP. For Mac users, try using your en0 interface (still looking for ways to use the bridge interface from Docker).  
+5) For Windows mounting, follow *nix based directory paths for your home folder. For example, if your directory is in `C:\Users/vincentj\Documents\test\out.tgz`, mount it by using the path `c:/Users/vincentj/Documents/test/out.tgz` so that Docker recognizes your mount point.  
+6) Try to use PowerShell if possible.  
+
 ## To Do's
 1) Update the command to run for Windows-based Users. The display variables are for *nix based systems (verified with MacOS; for Linux, the IP isn't needed).  
